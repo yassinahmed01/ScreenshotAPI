@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     browser_timeout_ms: int = Field(default=60000, ge=10000, le=180000)
     browser_recycle_requests: int = Field(default=50, ge=1, le=500)
     
+    # Proxy settings (optional - for sites like Barchart that block automated browsers)
+    proxy_server: Optional[str] = Field(default=None, description="Proxy server URL (e.g., http://proxy.example.com:8080)")
+    proxy_username: Optional[str] = Field(default=None, description="Proxy username if authentication required")
+    proxy_password: Optional[str] = Field(default=None, description="Proxy password if authentication required")
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

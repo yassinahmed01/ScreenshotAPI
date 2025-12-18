@@ -96,7 +96,7 @@ class BrowserManager:
             self._playwright = None
     
     @asynccontextmanager
-    async def get_context(self, request: ScreenshotRequest):
+    async def get_context(self, request: ScreenshotRequest, request_id: str = "unknown"):
         """
         Get a new browser context for a request.
         Context is automatically cleaned up when done.
@@ -158,6 +158,16 @@ class BrowserManager:
                 "user_agent": default_user_agent,
                 "extra_http_headers": default_headers,
             }
+            
+            # Add proxy configuration if provided
+            settings = self._settings
+            if settings.proxy_server:
+                proxy_config = {"server": settings.proxy_server}
+                if settings.proxy_username and settings.proxy_password:
+                    proxy_config["username"] = settings.proxy_username
+                    proxy_config["password"] = settings.proxy_password
+                context_options["proxy"] = proxy_config
+                logger.info(f"[{request_id}] Using proxy: {settings.proxy_server}")
             
             context = await browser.new_context(**context_options)
             
