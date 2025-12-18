@@ -282,12 +282,13 @@ async def capture_screenshot(
             def __init__(self, url: str):
                 self.url = url
                 # Hardcoded defaults - not configurable via API
-                self.wait = WaitStrategy.LOAD
-                self.wait_ms = 8000
-                self.timeout_ms = 90000
+                # Using networkidle wait + longer delay for JS-heavy pages like Barchart
+                self.wait = WaitStrategy.NETWORKIDLE
+                self.wait_ms = 15000  # Increased to 15 seconds for tables/dynamic content to load
+                self.timeout_ms = 120000  # Increased timeout to 120 seconds
                 self.viewport = Viewport(width=1280, height=720)
                 self.full_page = False
-                self.scroll = ScrollConfig(mode=ScrollMode.AUTO, auto_duration_ms=3000)
+                self.scroll = ScrollConfig(mode=ScrollMode.AUTO, auto_duration_ms=5000)  # Longer scroll for lazy loading
                 self.format = ImageFormat.JPEG
                 self.quality = 85
                 self.user_agent = None
