@@ -46,11 +46,12 @@ git push -u origin main
 
 #### Option B: Using Render Blueprint (render.yaml)
 
-1. Push code to GitHub
+1. Push code to GitHub (main branch)
 2. In Render Dashboard, click **"New +"** → **"Blueprint"**
 3. Connect repository
 4. Render will read `render.yaml` and create the service
 5. **Important**: Set `API_KEY` manually in Environment Variables
+6. **Note**: Make sure branch is set to `main` (not `master`)
 
 ### 3. Get Your API URL
 
