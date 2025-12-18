@@ -39,7 +39,8 @@
 | Field | Value |
 |-------|-------|
 | **Response Format** | `File` |
-| **Timeout** | `120000` (120 seconds) |
+| **Timeout** | `300000` (300 seconds / 5 minutes) |
+| | *Important: Must be longer than API timeout (240s)* |
 | **Ignore SSL Issues** | `false` (leave unchecked) |
 
 #### **Body Tab:**
