@@ -1,0 +1,30 @@
+# Render Blueprint - Infrastructure as Code
+# Deploy with: render blueprint sync
+
+services:
+  - type: web
+    name: screenshot-api
+    env: docker
+    plan: starter  # Upgrade to standard for production
+    region: oregon  # Choose region closest to n8n Cloud
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: MAX_CONCURRENCY
+        value: "2"
+      - key: DEFAULT_TIMEOUT_MS
+        value: "30000"
+      - key: DEFAULT_WAIT_MS
+        value: "2000"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "30"
+      - key: LOG_LEVEL
+        value: "INFO"
+      - key: ALLOWED_DOMAINS
+        value: ""  # Set if you want domain allowlist
+    scaling:
+      minInstances: 1
+      maxInstances: 1  # Keep at 1 to avoid distributed rate limiting complexity
+
