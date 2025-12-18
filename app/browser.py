@@ -284,7 +284,7 @@ async def take_screenshot(
     browser_manager = get_browser_manager()
     
     try:
-        async with browser_manager.get_context(request) as page:
+        async with browser_manager.get_context(request, request_id) as page:
             # Set page timeout
             page.set_default_timeout(timeout_ms)
             
