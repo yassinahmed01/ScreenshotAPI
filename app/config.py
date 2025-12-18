@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = Field(default=30, ge=1, le=100)
     
     # Default screenshot options
-    default_timeout_ms: int = Field(default=30000, ge=5000, le=120000)
+    default_timeout_ms: int = Field(default=30000, ge=5000, le=300000)  # Max 5 minutes for slow pages
     default_wait_ms: int = Field(default=2000, ge=0, le=30000)
     default_viewport_width: int = Field(default=1280, ge=320, le=3840)
     default_viewport_height: int = Field(default=720, ge=240, le=2160)
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO")
     
     # Browser settings
-    browser_timeout_ms: int = Field(default=60000, ge=10000, le=180000)
+    browser_timeout_ms: int = Field(default=60000, ge=10000, le=300000)  # Max 5 minutes for slow pages
     browser_recycle_requests: int = Field(default=50, ge=1, le=500)
     
     # Proxy settings (optional - for sites like Barchart that block automated browsers)

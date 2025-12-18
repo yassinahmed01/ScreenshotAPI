@@ -285,7 +285,7 @@ async def capture_screenshot(
                 # Using networkidle wait + longer delay for JS-heavy pages like Barchart
                 self.wait = WaitStrategy.NETWORKIDLE
                 self.wait_ms = 15000  # Increased to 15 seconds for tables/dynamic content to load
-                self.timeout_ms = 120000  # Increased timeout to 120 seconds
+                self.timeout_ms = 240000  # Increased timeout to 240 seconds (4 minutes) for slow pages with proxy
                 self.viewport = Viewport(width=1280, height=720)
                 self.full_page = False
                 self.scroll = ScrollConfig(mode=ScrollMode.AUTO, auto_duration_ms=5000)  # Longer scroll for lazy loading
