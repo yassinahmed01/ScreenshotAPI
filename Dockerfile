@@ -1,85 +1,70 @@
 # Production Dockerfile for Screenshot API on Render
-# Uses multi-stage build for smaller final image
+# Optimized for minimal size (Free tier friendly)
 
 FROM python:3.11-slim as builder
 
 WORKDIR /build
 
-# Install build dependencies
+# Install minimal build dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies globally (not --user)
+# Install Python dependencies globally with no cache
 RUN pip install --no-cache-dir -r requirements.txt
 
 
-# Final stage
+# Final stage - minimal base
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install Playwright system dependencies for Chromium
-# These are required for headless Chromium to run
+# Install only essential system packages
+# Use Playwright's installer to get minimal dependencies for Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Playwright Chromium dependencies
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    libpango-1.0-0 \
-    libcairo2 \
-    libatspi2.0-0 \
-    libgtk-3-0 \
-    # Fonts
-    fonts-liberation \
-    fonts-noto-color-emoji \
-    # X11 libs
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxext6 \
-    # Misc
-    ca-certificates \
     wget \
+    ca-certificates \
+    # Install playwright first to use its dependency installer
+    && pip install --no-cache-dir playwright==1.41.2 \
+    && playwright install-deps chromium \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /tmp/* /var/tmp/* \
+    && find /usr/local -name "*.pyc" -delete \
+    && find /usr/local -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
-# Copy Python packages from builder (installed globally)
+# Copy Python packages from builder (already installed)
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Install Playwright browsers (Chromium only) as root
-RUN playwright install chromium
+# Install Chromium only (not other browsers)
+# Clean up any accidentally installed browsers (Firefox, WebKit)
+RUN playwright install chromium \
+    && rm -rf /root/.cache/ms-playwright/.local-browsers/*/firefox* \
+    && rm -rf /root/.cache/ms-playwright/.local-browsers/*/webkit* 2>/dev/null || true
 
 # Copy application code
 COPY app/ ./app/
 
-# Create non-root user for security
+# Create non-root user (required for security)
 RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
 
-# Copy Playwright browsers to appuser home
+# Copy Playwright cache to appuser and clean up root cache
 RUN cp -r /root/.cache /home/appuser/.cache \
-    && chown -R appuser:appuser /home/appuser/.cache
+    && chown -R appuser:appuser /home/appuser/.cache \
+    && rm -rf /root/.cache
 
 USER appuser
 
 # Environment defaults
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
 
 # Expose port
 EXPOSE 8000
@@ -90,4 +75,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 # Run with uvicorn
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
