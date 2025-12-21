@@ -68,10 +68,40 @@ class BrowserManager:
                         "--no-sandbox",
                         "--disable-setuid-sandbox",
                         "--disable-dev-shm-usage",
-                        "--disable-blink-features=AutomationControlled",  # Hide automation
+                        "--disable-blink-features=AutomationControlled",
                         "--disable-features=IsolateOrigins,site-per-process",
                         "--disable-web-security",
                         "--disable-features=VizDisplayCompositor",
+                        "--disable-background-networking",
+                        "--disable-background-timer-throttling",
+                        "--disable-breakpoint",
+                        "--disable-client-side-phishing-detection",
+                        "--disable-component-update",
+                        "--disable-default-apps",
+                        "--disable-domain-reliability",
+                        "--disable-extensions",
+                        "--disable-features=AudioServiceOutOfProcess",
+                        "--disable-hang-monitor",
+                        "--disable-ipc-flooding-protection",
+                        "--disable-notifications",
+                        "--disable-offer-store-unmasked-wallet-cards",
+                        "--disable-popup-blocking",
+                        "--disable-prompt-on-repost",
+                        "--disable-renderer-backgrounding",
+                        "--disable-speech-api",
+                        "--disable-sync",
+                        "--hide-scrollbars",
+                        "--ignore-gpu-blacklist",
+                        "--metrics-recording-only",
+                        "--mute-audio",
+                        "--no-default-browser-check",
+                        "--no-first-run",
+                        "--no-pings",
+                        "--no-zygote",
+                        "--password-store=basic",
+                        "--use-gl=swiftshader",
+                        "--use-mock-keychain",
+                        "--window-size=1280,720",
                     ]
                 )
                 self._request_count = 0
@@ -124,26 +154,28 @@ class BrowserManager:
             viewport_height = request.viewport.height if request.viewport else settings.default_viewport_height
             
             # Create context with settings
-            # Default to a realistic user agent if not provided
+            # Default to a realistic, current Chrome user agent if not provided
+            # Updated to match latest Chrome version for better compatibility
             default_user_agent = (
                 request.user_agent 
                 if request.user_agent 
-                else "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                else "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
             )
             
-            # Default headers to look like a real browser
+            # Realistic browser headers matching Chrome 131 on Windows
+            # These headers are critical for bypassing bot detection systems
             default_headers = {
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
                 "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Encoding": "gzip, deflate, br",
-                "DNT": "1",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+                "Sec-Ch-Ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+                "Sec-Ch-Ua-Mobile": "?0",
+                "Sec-Ch-Ua-Platform": '"Windows"',
                 "Sec-Fetch-Dest": "document",
                 "Sec-Fetch-Mode": "navigate",
                 "Sec-Fetch-Site": "none",
                 "Sec-Fetch-User": "?1",
-                "Cache-Control": "max-age=0",
+                "Upgrade-Insecure-Requests": "1",
             }
             
             # Merge user-provided headers with defaults (user headers take precedence)
@@ -159,25 +191,31 @@ class BrowserManager:
                 "extra_http_headers": default_headers,
             }
             
-            # Add proxy configuration if provided
-            settings = self._settings
-            if settings.proxy_server:
-                proxy_config = {"server": settings.proxy_server}
-                if settings.proxy_username and settings.proxy_password:
-                    proxy_config["username"] = settings.proxy_username
-                    proxy_config["password"] = settings.proxy_password
-                context_options["proxy"] = proxy_config
-                logger.info(f"[{request_id}] Using proxy: {settings.proxy_server}")
-            
             context = await browser.new_context(**context_options)
             
-            # Remove webdriver property and other automation indicators
+            # Comprehensive anti-bot detection bypass script
+            # This script addresses multiple bot detection vectors:
+            # - webdriver property removal
+            # - Chrome runtime object mocking
+            # - Realistic browser fingerprinting (plugins, languages, hardware)
+            # - Canvas/WebGL/Audio fingerprint randomization
+            # - Automation indicator removal
             await context.add_init_script("""
+                // Remove webdriver property (primary bot detection flag)
                 Object.defineProperty(navigator, 'webdriver', {
-                    get: () => undefined
+                    get: () => undefined,
+                    configurable: true
                 });
                 
-                // Override permissions
+                // Override Chrome runtime to hide automation
+                window.chrome = {
+                    runtime: {},
+                    loadTimes: function() {},
+                    csi: function() {},
+                    app: {}
+                };
+                
+                // Fix permissions API
                 const originalQuery = window.navigator.permissions.query;
                 window.navigator.permissions.query = (parameters) => (
                     parameters.name === 'notifications' ?
@@ -185,14 +223,156 @@ class BrowserManager:
                         originalQuery(parameters)
                 );
                 
-                // Mock plugins
+                // Realistic plugins array (matching Chrome)
                 Object.defineProperty(navigator, 'plugins', {
-                    get: () => [1, 2, 3, 4, 5]
+                    get: () => {
+                        const plugins = [
+                            {
+                                0: {type: "application/x-google-chrome-pdf", suffixes: "pdf", description: "Portable Document Format"},
+                                description: "Portable Document Format",
+                                filename: "internal-pdf-viewer",
+                                length: 1,
+                                name: "Chrome PDF Plugin"
+                            },
+                            {
+                                0: {type: "application/pdf", suffixes: "pdf", description: ""},
+                                description: "",
+                                filename: "mhjfbmdgcfjbbpaeojofohoefgiehjai",
+                                length: 1,
+                                name: "Chrome PDF Viewer"
+                            },
+                            {
+                                0: {type: "application/x-nacl", suffixes: "", description: "Native Client Executable"},
+                                1: {type: "application/x-pnacl", suffixes: "", description: "Portable Native Client Executable"},
+                                description: "",
+                                filename: "internal-nacl-plugin",
+                                length: 2,
+                                name: "Native Client"
+                            }
+                        ];
+                        return plugins;
+                    },
+                    configurable: true
                 });
                 
-                // Mock languages
+                // Realistic languages
                 Object.defineProperty(navigator, 'languages', {
-                    get: () => ['en-US', 'en']
+                    get: () => ['en-US', 'en'],
+                    configurable: true
+                });
+                
+                // Fix platform
+                Object.defineProperty(navigator, 'platform', {
+                    get: () => 'Win32',
+                    configurable: true
+                });
+                
+                // Fix hardware concurrency (realistic CPU cores)
+                Object.defineProperty(navigator, 'hardwareConcurrency', {
+                    get: () => 8,
+                    configurable: true
+                });
+                
+                // Fix device memory
+                Object.defineProperty(navigator, 'deviceMemory', {
+                    get: () => 8,
+                    configurable: true
+                });
+                
+                // Override getBattery if present (can reveal automation)
+                if (navigator.getBattery) {
+                    navigator.getBattery = undefined;
+                }
+                
+                // Mock connection (network info)
+                Object.defineProperty(navigator, 'connection', {
+                    get: () => ({
+                        effectiveType: '4g',
+                        rtt: 50,
+                        downlink: 10,
+                        saveData: false,
+                        onchange: null
+                    }),
+                    configurable: true
+                });
+                
+                // Canvas fingerprint protection - add noise to prevent tracking
+                const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+                HTMLCanvasElement.prototype.toDataURL = function(type) {
+                    if (type === 'image/png' || type === 'image/jpeg') {
+                        const context = this.getContext('2d');
+                        if (context) {
+                            const imageData = context.getImageData(0, 0, this.width, this.height);
+                            // Add minimal random noise (undetectable to human eye)
+                            for (let i = 0; i < imageData.data.length; i += 4) {
+                                if (Math.random() > 0.999) {
+                                    imageData.data[i] = Math.min(255, imageData.data[i] + Math.random() * 2 - 1);
+                                }
+                            }
+                            context.putImageData(imageData, 0, 0);
+                        }
+                    }
+                    return originalToDataURL.apply(this, arguments);
+                };
+                
+                // WebGL fingerprint protection
+                const getParameter = WebGLRenderingContext.prototype.getParameter;
+                WebGLRenderingContext.prototype.getParameter = function(parameter) {
+                    if (parameter === 37445) { // UNMASKED_VENDOR_WEBGL
+                        return 'Intel Inc.';
+                    }
+                    if (parameter === 37446) { // UNMASKED_RENDERER_WEBGL
+                        return 'Intel Iris OpenGL Engine';
+                    }
+                    return getParameter.apply(this, arguments);
+                };
+                
+                // Audio context fingerprint protection
+                if (window.AudioContext || window.webkitAudioContext) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    const originalCreateOscillator = AudioContext.prototype.createOscillator;
+                    AudioContext.prototype.createOscillator = function() {
+                        const oscillator = originalCreateOscillator.apply(this, arguments);
+                        const originalFrequency = oscillator.frequency.value;
+                        Object.defineProperty(oscillator.frequency, 'value', {
+                            get: function() {
+                                return originalFrequency + (Math.random() * 0.0001 - 0.00005);
+                            }
+                        });
+                        return oscillator;
+                    };
+                }
+                
+                // Fix missing vendor
+                Object.defineProperty(navigator, 'vendor', {
+                    get: () => 'Google Inc.',
+                    configurable: true
+                });
+                
+                // Fix appVersion to match user agent
+                Object.defineProperty(navigator, 'appVersion', {
+                    get: () => '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                    configurable: true
+                });
+                
+                // Override toString methods to prevent detection
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined,
+                    configurable: true
+                });
+                
+                // Fix missing automation indicators
+                delete navigator.__proto__.webdriver;
+                
+                // Prevent detection via iframe
+                Object.defineProperty(window, 'outerHeight', {
+                    get: () => window.innerHeight,
+                    configurable: true
+                });
+                
+                Object.defineProperty(window, 'outerWidth', {
+                    get: () => window.innerWidth,
+                    configurable: true
                 });
             """)
             
