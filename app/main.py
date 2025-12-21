@@ -288,7 +288,7 @@ async def capture_screenshot(
                 # Balanced defaults - fast but works with heavy sites like Barchart
                 self.wait = WaitStrategy.DOMCONTENTLOADED  # Fires early, before all resources load
                 self.wait_ms = 5000  # 5 seconds for JS to render dynamic content
-                self.timeout_ms = 90000  # 90 seconds timeout for heavy pages
+                self.timeout_ms = 240000  # 240 seconds (4 minutes) for heavy pages like Barchart
                 self.viewport = Viewport(width=1280, height=720)
                 self.full_page = False
                 self.scroll = ScrollConfig(mode=ScrollMode.AUTO, auto_duration_ms=1500)  # 1.5 second scroll
