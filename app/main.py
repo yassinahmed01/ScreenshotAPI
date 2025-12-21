@@ -169,13 +169,16 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle unexpected exceptions."""
     request_id = getattr(request.state, "request_id", "unknown")
+    # Log full traceback
+    import traceback
     logger.exception(f"[{request_id}] Unexpected error: {exc}")
+    logger.error(f"[{request_id}] Full traceback: {traceback.format_exc()}")
     
     return JSONResponse(
         status_code=500,
         content={
             "error_code": "internal_error",
-            "message": "An unexpected error occurred",
+            "message": f"An unexpected error occurred: {str(exc)}",
             "request_id": request_id,
         }
     )
@@ -340,14 +343,17 @@ async def capture_screenshot(
         )
     
     except Exception as e:
+        # Log full traceback for debugging
+        import traceback
         logger.exception(f"[{request_id}] Screenshot failed: {e}")
+        logger.error(f"[{request_id}] Full traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
             detail={
                 "error_code": "internal_error",
-                "message": "Failed to capture screenshot",
+                "message": f"Failed to capture screenshot: {str(e)}",
                 "request_id": request_id,
-                "details": {"error": str(e)}
+                "details": {"error": str(e), "type": type(e).__name__}
             }
         )
     

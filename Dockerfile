@@ -41,23 +41,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Install Chromium only (not other browsers)
-# Clean up any accidentally installed browsers (Firefox, WebKit)
-RUN playwright install chromium \
-    && rm -rf /root/.cache/ms-playwright/.local-browsers/*/firefox* \
-    && rm -rf /root/.cache/ms-playwright/.local-browsers/*/webkit* 2>/dev/null || true
-
-# Copy application code
-COPY app/ ./app/
-
 # Create non-root user (required for security)
 RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
 
-# Copy Playwright cache to appuser and clean up root cache
-RUN cp -r /root/.cache /home/appuser/.cache \
-    && chown -R appuser:appuser /home/appuser/.cache \
-    && rm -rf /root/.cache
+# Install Chromium as appuser (so it goes to the right location)
+USER appuser
+
+# Install Chromium only (not other browsers) - now as appuser
+RUN playwright install chromium \
+    && rm -rf /home/appuser/.cache/ms-playwright/.local-browsers/*/firefox* \
+    && rm -rf /home/appuser/.cache/ms-playwright/.local-browsers/*/webkit* 2>/dev/null || true
+
+# Copy application code (as root, then fix ownership)
+USER root
+COPY app/ ./app/
+RUN chown -R appuser:appuser /app
 
 USER appuser
 
