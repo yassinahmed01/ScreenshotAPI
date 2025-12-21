@@ -70,12 +70,12 @@ Capture a screenshot of a URL.
 
 **Hardcoded Defaults (not configurable via API):**
 - Viewport: 1280x720
-- Wait strategy: "load" + 8000ms delay
-- Timeout: 90000ms (90 seconds)
+- Wait strategy: "networkidle" + 15000ms delay (optimized for dynamic content)
+- Timeout: 240000ms (240 seconds / 4 minutes)
 - Format: JPEG, quality 85
 - Full page: false (exact 1280x720 size)
-- Scroll: auto (3000ms duration)
-- Anti-bot detection: enabled (realistic headers, user agent, stealth JS)
+- Scroll: auto (5000ms duration)
+- Anti-bot detection: comprehensive stealth techniques (see Browser Automation section)
 
 **Success Response:** `200 OK`
 - Body: Binary image (JPEG or PNG)
@@ -141,6 +141,41 @@ Get service status including concurrency info.
 - Ignore HTTPS errors
 - Page timeout enforcement
 - Viewport bounds validation
+
+### Anti-Bot Detection Bypass
+The API implements comprehensive stealth techniques to bypass bot detection systems:
+
+**Browser Fingerprinting Protection:**
+- Removes `navigator.webdriver` property (primary bot detection flag)
+- Mocks Chrome runtime objects (`window.chrome`)
+- Realistic browser plugins array (matches real Chrome)
+- Proper platform, hardware concurrency, and device memory values
+- Realistic navigator.languages, vendor, and appVersion
+
+**Fingerprint Randomization:**
+- Canvas fingerprint protection (adds imperceptible noise)
+- WebGL vendor/renderer spoofing (Intel Iris)
+- Audio context fingerprint randomization
+- Connection API mocking (4G network characteristics)
+
+**Headers & User Agent:**
+- Chrome 131 user agent (latest stable)
+- Realistic HTTP headers including Sec-Ch-Ua values
+- Proper Accept, Accept-Language, Accept-Encoding headers
+- Correct Sec-Fetch-* headers for navigation
+
+**Browser Launch Arguments:**
+- `--disable-blink-features=AutomationControlled` flag
+- Comprehensive Chrome flags to minimize automation detection
+- Window size matching viewport (1280x720)
+
+**JavaScript Stealth Injection:**
+- Removes automation indicators before page scripts execute
+- Overrides permission APIs
+- Fixes missing browser APIs that reveal automation
+- Prevents detection via iframe analysis
+
+These techniques work together to make the headless browser appear as a real user's Chrome browser, bypassing most bot detection systems including CloudFront, Akamai, and other WAF solutions.
 
 ### Metadata Captured
 - Final URL after redirects
