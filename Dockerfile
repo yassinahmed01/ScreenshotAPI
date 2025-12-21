@@ -51,10 +51,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcb1 \
     libxext6 \
     libxshmfence1 \
-    # Additional required libraries
+    # Additional required libraries (dependencies of the above)
+    libglib2.0-0 \
     libgdk-pixbuf2.0-0 \
+    libdbus-1-3 \
+    libexpat1 \
     libxss1 \
-    libgconf-2-4 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean \
     && rm -rf /tmp/* /var/tmp/*
