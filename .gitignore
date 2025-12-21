@@ -71,3 +71,4 @@ Thumbs.db
 *.bak
 *.swp
 
+*.api_key.txt

@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import time
+import random
 from dataclasses import dataclass
 from typing import Optional
 from contextlib import asynccontextmanager
@@ -13,6 +14,39 @@ from app.config import get_settings
 from app.models import ScreenshotRequest, WaitStrategy, ScrollMode, ImageFormat
 
 logger = logging.getLogger(__name__)
+
+
+async def simulate_human_behavior(page: Page, viewport_width: int, viewport_height: int):
+    """
+    Simulate human-like mouse movements and behavior.
+    This helps bypass bot detection that looks for automation patterns.
+    """
+    try:
+        # Random initial mouse position
+        x = random.randint(100, viewport_width - 100)
+        y = random.randint(100, viewport_height - 100)
+        
+        # Move mouse to random position
+        await page.mouse.move(x, y)
+        await asyncio.sleep(random.uniform(0.1, 0.3))
+        
+        # Simulate natural mouse movement (2-3 movements)
+        for _ in range(random.randint(2, 3)):
+            new_x = random.randint(50, viewport_width - 50)
+            new_y = random.randint(50, viewport_height - 50)
+            # Move in steps for more natural movement
+            steps = random.randint(5, 10)
+            await page.mouse.move(new_x, new_y, steps=steps)
+            await asyncio.sleep(random.uniform(0.05, 0.15))
+        
+        # Small random scroll (like a human checking the page)
+        scroll_amount = random.randint(50, 150)
+        await page.evaluate(f"window.scrollBy(0, {scroll_amount})")
+        await asyncio.sleep(random.uniform(0.1, 0.2))
+        await page.evaluate(f"window.scrollBy(0, -{scroll_amount})")
+        
+    except Exception as e:
+        logger.debug(f"Human simulation failed (non-critical): {e}")
 
 
 @dataclass
@@ -490,6 +524,27 @@ async def take_screenshot(
             # Get final URL after redirects
             final_url = page.url
             
+            # Simulate human behavior BEFORE waiting (critical for bot detection bypass)
+            viewport_width = request.viewport.width if request.viewport else settings.default_viewport_width
+            viewport_height = request.viewport.height if request.viewport else settings.default_viewport_height
+            await simulate_human_behavior(page, viewport_width, viewport_height)
+            
+            # Smart wait: Wait for actual content to appear (more reliable than fixed time)
+            try:
+                # Wait for body to have meaningful content (not just loading spinner)
+                await page.wait_for_function(
+                    """() => {
+                        const body = document.body;
+                        if (!body) return false;
+                        // Check if body has actual content (not just loading)
+                        const text = body.innerText || '';
+                        return text.length > 100;
+                    }""",
+                    timeout=10000  # Max 10s for content to appear
+                )
+            except Exception:
+                pass  # Continue even if smart wait fails
+            
             # Additional wait time for JS rendering
             if wait_ms > 0:
                 await asyncio.sleep(wait_ms / 1000)
@@ -497,6 +552,9 @@ async def take_screenshot(
             # Handle scrolling for lazy-loaded content
             if request.scroll:
                 await _handle_scroll(page, request.scroll)
+            
+            # One more small human action before screenshot
+            await asyncio.sleep(random.uniform(0.2, 0.5))
             
             # Take screenshot
             screenshot_options = {

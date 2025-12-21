@@ -225,22 +225,23 @@ async def capture_screenshot(
     
     **Simplified API**: Only the `url` parameter is required. All other settings use optimal defaults:
     - Viewport: 1280x720
-    - Wait strategy: "load" with 8 second delay
-    - Timeout: 90 seconds
+    - Wait strategy: "load" + 3 second delay (fast but reliable)
+    - Timeout: 60 seconds
     - Format: JPEG, quality 85
-    - Auto-scroll enabled for lazy-loaded content
-    - Anti-bot detection bypass enabled
+    - Auto-scroll: 2 seconds
+    - Human-like mouse movements (bypasses bot detection)
+    - Comprehensive anti-fingerprinting
     
-    Optional parameters can override defaults if needed.
+    **Typical response time**: 8-15 seconds for most pages.
     
-    Returns the screenshot as a binary image (JPEG by default).
+    Returns the screenshot as a binary image (JPEG).
     
     Response Headers:
     - X-Request-Id: Unique request identifier
     - X-Final-Url: URL after any redirects
     - X-Load-Time-Ms: Navigation time in milliseconds
     - X-Total-Time-Ms: Total processing time in milliseconds
-    - X-Warning: Any warnings (e.g., "page_may_be_empty", "captcha_suspected")
+    - X-Warning: Any warnings (e.g., "page_may_be_empty")
     """
     request_id = getattr(request.state, "request_id", "unknown")
     
@@ -281,17 +282,17 @@ async def capture_screenshot(
         
         # Create a dataclass-like object with all hardcoded defaults
         class ScreenshotConfig:
-            """Internal config with all hardcoded defaults."""
+            """Internal config with all hardcoded defaults - OPTIMIZED FOR SPEED."""
             def __init__(self, url: str):
                 self.url = url
-                # Hardcoded defaults - not configurable via API
-                # Using networkidle wait + longer delay for JS-heavy pages like Barchart
-                self.wait = WaitStrategy.NETWORKIDLE
-                self.wait_ms = 15000  # Increased to 15 seconds for tables/dynamic content to load
-                self.timeout_ms = 240000  # Increased timeout to 240 seconds (4 minutes) for slow pages with dynamic content
+                # FAST defaults - optimized for speed while still capturing dynamic content
+                # Using "load" instead of "networkidle" - networkidle can hang on analytics-heavy pages
+                self.wait = WaitStrategy.LOAD  # Wait for page load event (faster than networkidle)
+                self.wait_ms = 3000  # 3 seconds extra wait for JS to render (reduced from 15s)
+                self.timeout_ms = 60000  # 60 seconds timeout (reduced from 240s)
                 self.viewport = Viewport(width=1280, height=720)
                 self.full_page = False
-                self.scroll = ScrollConfig(mode=ScrollMode.AUTO, auto_duration_ms=5000)  # Longer scroll for lazy loading
+                self.scroll = ScrollConfig(mode=ScrollMode.AUTO, auto_duration_ms=2000)  # 2 second scroll
                 self.format = ImageFormat.JPEG
                 self.quality = 85
                 self.user_agent = None
