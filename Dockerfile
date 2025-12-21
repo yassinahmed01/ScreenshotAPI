@@ -23,23 +23,23 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install only essential system packages
-# Use Playwright's installer to get minimal dependencies for Chromium
+# Install only essential system packages first
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ca-certificates \
-    # Install playwright first to use its dependency installer
-    && pip install --no-cache-dir playwright==1.41.2 \
-    && playwright install-deps chromium \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
+    && apt-get clean
+
+# Copy Python packages from builder (includes playwright)
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Install Playwright system dependencies (playwright package is now available from copied packages)
+RUN playwright install-deps chromium \
+    && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/* \
     && find /usr/local -name "*.pyc" -delete \
     && find /usr/local -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-
-# Copy Python packages from builder (already installed)
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Create non-root user (required for security)
 RUN useradd --create-home --shell /bin/bash appuser \
