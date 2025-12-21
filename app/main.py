@@ -285,14 +285,13 @@ async def capture_screenshot(
             """Internal config with all hardcoded defaults - OPTIMIZED FOR SPEED."""
             def __init__(self, url: str):
                 self.url = url
-                # FAST defaults - optimized for speed while still capturing dynamic content
-                # Using "load" instead of "networkidle" - networkidle can hang on analytics-heavy pages
-                self.wait = WaitStrategy.LOAD  # Wait for page load event (faster than networkidle)
-                self.wait_ms = 3000  # 3 seconds extra wait for JS to render (reduced from 15s)
-                self.timeout_ms = 60000  # 60 seconds timeout (reduced from 240s)
+                # Balanced defaults - fast but works with heavy sites like Barchart
+                self.wait = WaitStrategy.DOMCONTENTLOADED  # Fires early, before all resources load
+                self.wait_ms = 5000  # 5 seconds for JS to render dynamic content
+                self.timeout_ms = 90000  # 90 seconds timeout for heavy pages
                 self.viewport = Viewport(width=1280, height=720)
                 self.full_page = False
-                self.scroll = ScrollConfig(mode=ScrollMode.AUTO, auto_duration_ms=2000)  # 2 second scroll
+                self.scroll = ScrollConfig(mode=ScrollMode.AUTO, auto_duration_ms=1500)  # 1.5 second scroll
                 self.format = ImageFormat.JPEG
                 self.quality = 85
                 self.user_agent = None

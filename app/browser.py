@@ -538,9 +538,9 @@ async def take_screenshot(
                         if (!body) return false;
                         // Check if body has actual content (not just loading)
                         const text = body.innerText || '';
-                        return text.length > 100;
+                        return text.length > 50;  # Lower threshold for faster detection
                     }""",
-                    timeout=10000  # Max 10s for content to appear
+                    timeout=5000  # Max 5s for content to appear (reduced)
                 )
             except Exception:
                 pass  # Continue even if smart wait fails
