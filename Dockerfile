@@ -23,22 +23,48 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install only essential system packages first
+# Install all Chromium system dependencies explicitly
+# playwright install-deps doesn't always install everything, so we install manually
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ca-certificates \
+    # Chromium/Playwright required libraries
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libatspi2.0-0 \
+    libgtk-3-0 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxext6 \
+    libxshmfence1 \
+    # Additional required libraries
+    libgdk-pixbuf2.0-0 \
+    libxss1 \
+    libgconf-2-4 \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /tmp/* /var/tmp/*
 
 # Copy Python packages from builder (includes playwright)
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Install Playwright system dependencies (playwright package is now available from copied packages)
-RUN playwright install-deps chromium \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /tmp/* /var/tmp/* \
-    && find /usr/local -name "*.pyc" -delete \
+# Clean Python cache
+RUN find /usr/local -name "*.pyc" -delete \
     && find /usr/local -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
 # Create non-root user (required for security)
